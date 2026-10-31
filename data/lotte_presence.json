@@ -1,0 +1,17 @@
+{
+  "_note": "공개 보도로 확인된 롯데웰푸드 제품의 국가별 판매·수출·생산 근거. 여기에 없는 국가는 '미확인'이며, 미진출을 뜻하지 않는다. 확인 시점: 2026-10-31.",
+  "pepero": {
+    "USA": [{"type": "수출(최대 시장)", "title": "데일리안 – 빼빼로, 내수 뛰어넘고 상반기 325억 (롯데웰푸드 관계자: 미국 시장 수출이 가장 크다)", "url": "https://www.dailian.co.kr/news/view/1393347/"},
+            {"type": "주요 수출 지역", "title": "한국경제 – 빼빼로 57개국 수출, 북미·필리핀 중심", "url": "https://www.hankyung.com/article/202505228667g"}],
+    "CAN": [{"type": "주요 수출 지역", "title": "한국경제 – 빼빼로 57개국 수출, 미국·캐나다 등 북미", "url": "https://www.hankyung.com/article/202505228667g"}],
+    "PHL": [{"type": "주요 수출 지역", "title": "한국경제 – 필리핀을 중심으로 한 동남아", "url": "https://www.hankyung.com/article/202505228667g"},
+            {"type": "수출", "title": "데일리안 – 미국·필리핀·베트남 수출", "url": "https://www.dailian.co.kr/news/view/1393347/"}],
+    "VNM": [{"type": "수출·현지 마케팅", "title": "데일리안 – 베트남 옥외광고·팝업스토어", "url": "https://www.dailian.co.kr/news/view/1393347/"}],
+    "SGP": [{"type": "현지 마케팅", "title": "한국경제 – 미국·싱가포르·필리핀 등 15개국 빼빼로데이 마케팅", "url": "https://www.hankyung.com/article/202505228667g"}],
+    "RUS": [{"type": "수요 높은 국가", "title": "한국경제 – 러시아·사우디아라비아·몽골 수요 높음", "url": "https://www.hankyung.com/article/202505228667g"}],
+    "SAU": [{"type": "수요 높은 국가", "title": "한국경제 – 러시아·사우디아라비아·몽골 수요 높음", "url": "https://www.hankyung.com/article/202505228667g"}],
+    "MNG": [{"type": "수요 높은 국가", "title": "한국경제 – 러시아·사우디아라비아·몽골 수요 높음", "url": "https://www.hankyung.com/article/202505228667g"}],
+    "IND": [{"type": "현지 생산(롯데 인디아 하리아나 공장)", "title": "한국경제 – 인도를 빼빼로 첫 해외 생산기지로", "url": "https://www.hankyung.com/article/202505228667g"}]
+  },
+  "icecream": {}
+}

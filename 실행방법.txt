@@ -1,0 +1,13 @@
+[실행 방법 - Windows]
+1) Python 설치 (python.org, 설치 시 "Add python.exe to PATH" 체크)
+2) 이 demo 폴더에서 PowerShell 열기 (폴더 빈 곳에서 Shift+우클릭 → "PowerShell 창 열기" 또는 주소창에 powershell 입력)
+3) py -m pip install -r requirements.txt
+4) py -m streamlit run app.py   → 브라우저가 자동으로 열림
+
+[AI 보고서까지 쓰려면] (없어도 규칙 기반 보고서로 작동)
+$env:OPENAI_API_KEY="본인 키"   ← 키는 절대 파일에 저장하거나 GitHub에 올리지 말 것
+py -m streamlit run app.py
+
+[화면 없이 빠른 확인]
+py calc.py pepero
+py agent.py 아이스크림 기존 시장 확대
