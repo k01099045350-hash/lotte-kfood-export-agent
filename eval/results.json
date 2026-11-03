@@ -1,0 +1,395 @@
+{
+ "date": "2026-11-02 17:53",
+ "model": "gpt-4.1-mini",
+ "openai": true,
+ "interpret": {
+  "rule": {
+   "n": 20,
+   "correct": 15,
+   "by_field": {
+    "product": 20,
+    "track": 18,
+    "weights": 17,
+    "warning": 20
+   },
+   "by_type": {
+    "쉬움": "8/8",
+    "모호": "3/6",
+    "미지원": "3/3",
+    "숫자 가중치": "1/3"
+   },
+   "failures": [
+    {
+     "id": 10,
+     "q": "이미 파는 나라 말고 새로 들어갈 만한 곳",
+     "got": {
+      "product_id": "confect",
+      "track": "all",
+      "weights": {
+       "market": 0.45,
+       "korea": 0.4,
+       "gdp": 0.15
+      }
+     },
+     "ok": {
+      "product": true,
+      "track": false,
+      "weights": true,
+      "warning": true,
+      "all": false
+     }
+    },
+    {
+     "id": 12,
+     "q": "지금 잘 팔리는 나라에서 더 키우고 싶어",
+     "got": {
+      "product_id": "confect",
+      "track": "all",
+      "weights": {
+       "market": 0.45,
+       "korea": 0.4,
+       "gdp": 0.15
+      }
+     },
+     "ok": {
+      "product": true,
+      "track": false,
+      "weights": true,
+      "warning": true,
+      "all": false
+     }
+    },
+    {
+     "id": 13,
+     "q": "시장 규모가 큰 나라 위주로 봐줘",
+     "got": {
+      "product_id": "confect",
+      "track": "all",
+      "weights": {
+       "market": 0.45,
+       "korea": 0.4,
+       "gdp": 0.15
+      }
+     },
+     "ok": {
+      "product": true,
+      "track": true,
+      "weights": false,
+      "warning": true,
+      "all": false
+     }
+    },
+    {
+     "id": 19,
+     "q": "아이스크림 시장 50% 한국 50%로 계산",
+     "got": {
+      "product_id": "icecream",
+      "track": "all",
+      "weights": {
+       "market": 0.43478260869565216,
+       "korea": 0.43478260869565216,
+       "gdp": 0.13043478260869565
+      }
+     },
+     "ok": {
+      "product": true,
+      "track": true,
+      "weights": false,
+      "warning": true,
+      "all": false
+     }
+    },
+    {
+     "id": 20,
+     "q": "품목군 분석, 시장 40 한국 40 GDP 20 퍼센트",
+     "got": {
+      "product_id": "confect",
+      "track": "all",
+      "weights": {
+       "market": 0.45,
+       "korea": 0.4,
+       "gdp": 0.15
+      }
+     },
+     "ok": {
+      "product": true,
+      "track": true,
+      "weights": false,
+      "warning": true,
+      "all": false
+     }
+    }
+   ]
+  },
+  "openai": {
+   "n": 20,
+   "correct": 20,
+   "by_field": {
+    "product": 20,
+    "track": 20,
+    "weights": 20,
+    "warning": 20
+   },
+   "by_type": {
+    "쉬움": "8/8",
+    "모호": "6/6",
+    "미지원": "3/3",
+    "숫자 가중치": "3/3"
+   },
+   "failures": []
+  }
+ },
+ "verifier": {
+  "fake": {
+   "n": 9,
+   "correct": 9,
+   "meaning": "탐지"
+  },
+  "conversion": {
+   "n": 9,
+   "correct": 9,
+   "meaning": "오탐 없이 통과"
+  },
+  "country_swap": {
+   "n": 9,
+   "correct": 9,
+   "meaning": "탐지"
+  },
+  "metric_swap": {
+   "n": 9,
+   "correct": 9,
+   "meaning": "탐지"
+  }
+ },
+ "failures": {
+  "n": 4,
+  "correct": 4,
+  "tests": [
+   {
+    "case": "API 오류",
+    "mode": "offline_fallback",
+    "ok": true,
+    "warning": "OpenAI 보고서 생성 실패 → 규칙 기반 보고서 표시: simulated API error"
+   },
+   {
+    "case": "시간 초과",
+    "mode": "offline_fallback",
+    "ok": true,
+    "warning": "OpenAI 보고서 생성 실패 → 규칙 기반 보고서 표시: simulated timeout"
+   },
+   {
+    "case": "허용 범위 밖 인자(없는 제품·음수 가중치)",
+    "mode": "openai",
+    "ok": true,
+    "warning": "AI가 제안한 값 중 허용 범위를 벗어난 것을 무시하고 규칙 기반 해석값을 사용함: product_id='chips', track='everything', weights={'market': -1, 'korea': 2, 'gdp': 0}"
+   },
+   {
+    "case": "보고서 2회 연속 가짜 숫자",
+    "mode": "offline_fallback",
+    "ok": true,
+    "warning": "AI 보고서를 2회 작성했으나 검증을 통과하지 못해 폐기하고 규칙 기반 보고서를 표시함: 계산 결과에 없는 숫자 99,999.9; 다른 국가 값으로 의심(미국: 99,999.9)"
+   }
+  ]
+ },
+ "generation": {
+  "n": 15,
+  "first_pass": 13,
+  "self_correction_success": "2/2",
+  "final_ai_report": 15,
+  "fallback_to_rule": 0,
+  "safe_completion": 15,
+  "avg_seconds": 12.2,
+  "runs": [
+   {
+    "product": "confect",
+    "run": 1,
+    "mode": "openai",
+    "seconds": 11.5,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "confect",
+    "run": 2,
+    "mode": "openai",
+    "seconds": 11.7,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "confect",
+    "run": 3,
+    "mode": "openai",
+    "seconds": 23.0,
+    "first_pass": false,
+    "retried": true,
+    "final_pass": true,
+    "problems_first": [
+     "다른 국가 값으로 의심(네덜란드: 5)",
+     "다른 국가 값으로 의심(캐나다: 5)"
+    ],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "confect",
+    "run": 4,
+    "mode": "openai",
+    "seconds": 11.3,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "confect",
+    "run": 5,
+    "mode": "openai",
+    "seconds": 10.6,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "pepero",
+    "run": 1,
+    "mode": "openai",
+    "seconds": 11.7,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "pepero",
+    "run": 2,
+    "mode": "openai",
+    "seconds": 11.7,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "pepero",
+    "run": 3,
+    "mode": "openai",
+    "seconds": 24.6,
+    "first_pass": false,
+    "retried": true,
+    "final_pass": true,
+    "problems_first": [
+     "계산 결과에 없는 숫자 136.62",
+     "계산 결과에 없는 숫자 26.49",
+     "계산 결과에 없는 숫자 6.59",
+     "다른 국가 값으로 의심(네덜란드: 6.59)",
+     "다른 국가 값으로 의심(미국: 136.62)",
+     "다른 국가 값으로 의심(캐나다: 26.49)"
+    ],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "pepero",
+    "run": 4,
+    "mode": "openai",
+    "seconds": 10.5,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "pepero",
+    "run": 5,
+    "mode": "openai",
+    "seconds": 11.3,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "icecream",
+    "run": 1,
+    "mode": "openai",
+    "seconds": 10.3,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "icecream",
+    "run": 2,
+    "mode": "openai",
+    "seconds": 7.4,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "icecream",
+    "run": 3,
+    "mode": "openai",
+    "seconds": 8.1,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "icecream",
+    "run": 4,
+    "mode": "openai",
+    "seconds": 10.1,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   },
+   {
+    "product": "icecream",
+    "run": 5,
+    "mode": "openai",
+    "seconds": 9.0,
+    "first_pass": true,
+    "retried": false,
+    "final_pass": true,
+    "problems_first": [],
+    "problems_last": [],
+    "error": null
+   }
+  ]
+ }
+}

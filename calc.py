@@ -18,9 +18,52 @@ DATA = ROOT / "data"
 DEFAULT_WEIGHTS = {"market": 0.45, "korea": 0.40, "gdp": 0.15}
 TOP_IMPORTERS = 30
 TOP_KR_DEST = 20
+# 시작연도 금액이 이보다 작으면 성장률을 점수에 반영하지 않음(소액 기저의 성장률은 불안정). 단위: 천 달러
+SMALL_BASE_K = 1000
+SMALL_BASE_TESTS = (500, 1000, 2000)
 EXCLUDE = {"KOR"}
 # 중계무역 비중이 큰 국가: 수입액에 재수출 물량이 섞일 수 있음
 TRADE_HUBS = {"NLD", "BEL", "SGP", "HKG", "ARE"}
+
+# 실행 검토 확인처 (값은 확인 전까지 '미확인'으로 유지하고 링크만 제공)
+CHECK_LINKS = [
+    {"name": "aT 농식품수출정보(KATI) – 국가별 수출 규제·시장 정보", "url": "https://www.kati.net"},
+    {"name": "KOTRA 해외시장뉴스 – 국가별 시장 동향", "url": "https://dream.kotra.or.kr"},
+    {"name": "한국무역협회 TradeNAVI – 관세·인증 정보", "url": "https://www.tradenavi.or.kr"},
+    {"name": "관세청 – FTA 관세율 확인", "url": "https://www.customs.go.kr"},
+]
+
+
+def _action_plan(iso, track, prod_id, flags, near_tie_alt=None):
+    """규칙 기반 권고 확인 행동(AI 미사용). 역할·진출 근거 상태·제품·경고에서 만든다."""
+    hub = iso in TRADE_HUBS
+    risks = []
+    joined = " ".join(flags)
+    if hub:
+        risks.append("중계무역: 수입액에 재수출 물량 포함 가능")
+    if "소액 기저" in joined or "작아(" in joined:
+        risks.append("일부 기준에서 한국 수출 규모가 작아 성장률을 점수에서 제외함")
+    if "대체" in joined:
+        risks.append("기준연도 불일치(2023년 값 사용)")
+    if "수출 기록 없음" in joined:
+        risks.append("한국 통계상 수출 기록 없음")
+    if "분류" in joined:
+        risks.append("품목번호 간 통계 차이 의심")
+    if prod_id == "icecream":
+        risks.append("냉동 유통(콜드체인) 필요")
+    actions = []
+    if hub:
+        actions.append("재수출 비중과 인접국 공급 구조, 현지 유통사 확인")
+    elif track == "expand":
+        actions.append("현지 판매 채널별 실적과 경쟁 제품 가격 확인")
+    else:
+        actions.append("현지 유통 여부(아시안 마트·온라인)와 수입 규제·라벨 요건 확인")
+    if prod_id == "icecream":
+        actions.append("냉동 물류비·유통기한 조건 확인")
+    if near_tie_alt:
+        actions.append(f"점수 차이가 근소한 대체 후보({near_tie_alt})와 함께 검토")
+    return {"role_short": "유통 거점 후보" if hub else "소비시장 후보", "risks": risks, "actions": actions}
+
 
 SOURCES = [
     {"name": "UN Comtrade 공개 API (국가별 수입, 한국 수출)", "url": "https://comtradeapi.un.org/public/v1/preview/C/A/HS"},
@@ -103,7 +146,7 @@ def _candidates(imp, exp) -> list[str]:
     return sorted(set(importers) | set(dests))
 
 
-def _scenario(hs: str, candidates: list[str], weights: dict[str, float], names, gdp, extra_flags=None):
+def _scenario(hs: str, candidates: list[str], weights: dict[str, float], names, gdp, extra_flags=None, small_base=SMALL_BASE_K):
     imp = _load_trade(DATA / f"imp_{hs}.csv")
     exp = _load_trade(DATA / f"exp_{hs}.csv")
     extra_flags = extra_flags or {}
@@ -119,12 +162,24 @@ def _scenario(hs: str, candidates: list[str], weights: dict[str, float], names, 
         er = exp.get(iso, {})
         k_exp = er.get(BASE_YEAR)
         if k_exp is None:
-            k_exp = 0.0  # 한국 수출 통계는 한국이 보고하므로, 기록이 없으면 해당 연도 수출 실적이 없는 것으로 본다
-            flags.append(f"{BASE_YEAR}년 한국 수출 실적 없음(신규 진출 신호일 수 있음)")
+            # 한국 수출 자료는 한국(보고국)이 상대국별로 보고한 통계다. 상대국 행이 없으면 '한국 통계상 수출 기록 없음'으로 보고
+            # 점수 계산에는 0을 쓴다. 결측(재정규화)으로 처리하면 한국 제품이 팔리지 않는 나라가 오히려 유리해지는 왜곡이 생긴다.
+            k_exp = 0.0
+            kr_status = "no_reported_flow"
+            flags.append(f"한국 통계상 {BASE_YEAR}년 수출 기록 없음(점수 계산은 0, 비공개·소액 누락 가능성 있음)")
+        else:
+            kr_status = "observed_zero" if k_exp == 0 else "reported"
         k_cagr, f3 = checks.cagr(er if er else None, BASE_YEAR)
         if er and er.get(START_YEAR) in (None, 0):
             f3 = [f"한국 수출 성장률 산정 불가({START_YEAR}년 실적 없음)"]
         flags += [x for x in f3 if "자료 없음" not in x or er]
+        m_cagr_s, k_cagr_s = m_cagr, k_cagr
+        if m_cagr is not None and imp[iso].get(START_YEAR, 0) < small_base:
+            m_cagr_s = None
+            flags.append(f"수입 성장률: {START_YEAR}년 수입액이 작아(기준 {small_base*1000:,.0f}달러 미만) 점수에는 미반영")
+        if k_cagr is not None and er.get(START_YEAR, 0) < small_base:
+            k_cagr_s = None
+            flags.append(f"한국 수출 성장률: {START_YEAR}년 수출액이 작아(기준 {small_base*1000:,.0f}달러 미만) 점수에는 미반영")
         g = gdp.get(iso)
         if g is None:
             flags.append("1인당 GDP 자료 없음")
@@ -135,15 +190,20 @@ def _scenario(hs: str, candidates: list[str], weights: dict[str, float], names, 
             "market_year": m_year,
             "market_cagr": m_cagr,
             "kr_export_usd": k_exp * 1000,
+            "kr_export_status": kr_status,
             "kr_cagr": k_cagr,
+            "market_cagr_scored": m_cagr_s is not None,
+            "kr_cagr_scored": k_cagr_s is not None,
+            "_m_cagr_s": m_cagr_s,
+            "_k_cagr_s": k_cagr_s,
             "gdp_pc_usd": None if g is None else g[1],
             "flags": flags,
         }
 
     p_size = _percentile({k: r["market_size_usd"] for k, r in rows.items()})
-    p_mcagr = _percentile({k: r["market_cagr"] for k, r in rows.items()})
+    p_mcagr = _percentile({k: r.pop("_m_cagr_s") for k, r in rows.items()})
     p_kexp = _percentile({k: r["kr_export_usd"] for k, r in rows.items()})
-    p_kcagr = _percentile({k: r["kr_cagr"] for k, r in rows.items()})
+    p_kcagr = _percentile({k: r.pop("_k_cagr_s") for k, r in rows.items()})
     p_gdp = _percentile({k: r["gdp_pc_usd"] for k, r in rows.items()})
 
     def mean(*xs):
@@ -196,7 +256,7 @@ def run_analysis(product_id: str, track: str = "all", weights: dict | None = Non
     prod = products[product_id]
     w = _normalize_weights(weights)
     names = _load_json("country_names.json")
-    presence = _load_json("lotte_presence.json").get(product_id, {})
+    presence = _load_json("lotte_presence.json").get(prod.get("presence_from", product_id), {})
     gdp = _load_gdp()
     hs_list = list(prod["hs_scenarios"])
 
@@ -238,6 +298,10 @@ def run_analysis(product_id: str, track: str = "all", weights: dict | None = Non
             return None
         return sum(rs) / len(rs)
 
+    primary = prod.get("primary_scenario")
+    if primary:
+        prow = {r["iso3"]: r["rank"] for r in scenarios[primary]["ranking"]}
+        combined_rank = lambda iso: prow.get(iso)  # noqa: E731 — 기준 시나리오 순위만 사용
     ordered = sorted([i for i in candidates if combined_rank(i) is not None], key=lambda i: (combined_rank(i), i))
 
     def track_of(iso):
@@ -249,7 +313,7 @@ def run_analysis(product_id: str, track: str = "all", weights: dict | None = Non
         pool = [i for i in ordered if track_of(i) != "expand"]
     else:
         pool = ordered
-    if len(hs_list) >= 2:
+    if len(hs_list) >= 2 and not primary:
         robust = set(comparison["robust_countries"])
         pool = [i for i in pool if i in robust] + [i for i in pool if i not in robust]
 
@@ -262,12 +326,17 @@ def run_analysis(product_id: str, track: str = "all", weights: dict | None = Non
         for hs in hs_list:
             r = row(hs, iso)
             why.append(
-                f"[HS {hs}] 종합 {r['rank']}위(점수 {r['score']}) · 수입 {r['market_size_usd']/1e6:,.1f}백만 달러({r['market_year']}년)"
+                f"[{prod.get('scenario_short', {}).get(hs, 'HS ' + hs)}] 종합 {r['rank']}위(점수 {r['score']}) · 수입 {r['market_size_usd']/1e6:,.1f}백만 달러({r['market_year']}년)"
                 + (f", 연평균 성장률 {r['market_cagr']*100:.1f}%" if r['market_cagr'] is not None else ", 성장률 산정 불가")
                 + f" · 한국 수출 {r['kr_export_usd']/1e6:,.2f}백만 달러({BASE_YEAR}년)"
                 + (f", 한국 수출 성장률 {r['kr_cagr']*100:.1f}%" if r['kr_cagr'] is not None else "")
             )
-        flags = sorted({f for hs in hs_list for f in row(hs, iso)["flags"]})
+        if len(hs_list) >= 2:  # 기준별로 다른 경고는 어느 기준인지 표시
+            common = set.intersection(*[set(row(hs, iso)["flags"]) for hs in hs_list])
+            flags = sorted(common) + [f"[{prod.get('scenario_short', {}).get(hs, 'HS ' + hs)}] {f}"
+                                      for hs in hs_list for f in row(hs, iso)["flags"] if f not in common]
+        else:
+            flags = list(row(hs_list[0], iso)["flags"])
         top3.append({
             "iso3": iso,
             "country": names.get(iso, iso),
@@ -279,9 +348,21 @@ def run_analysis(product_id: str, track: str = "all", weights: dict | None = Non
             "why": why,
             "flags": flags,
             "review_items": {k: "미확인" for k in prod["review_items"]},
-            "role": "유통 거점 후보 (중계무역 가능성 검토 대상: 재수출 비중·인접국 공급 확인 필요)" if iso in TRADE_HUBS else "소비시장 후보 (현지 최종 수요 확인 필요)",
+            "role": "유통 거점 후보 (가능성 — 중계무역 여부·재수출 비중·인접국 공급 확인 필요)" if iso in TRADE_HUBS else "소비시장 후보 (현지 최종 수요 확인 필요)",
             "label": "우선 검토 후보",
         })
+
+    # 권고 확인 행동: 3위와 4위 점수 차이가 1점 미만이면 근소 경쟁으로 보고 대체 후보를 함께 제시
+    base_hs = primary or hs_list[0]
+    brank = [r for r in scenarios[base_hs]["ranking"] if r["rank"]]
+    alt = None
+    if len(top3) == 3 and len(pool) > 3:
+        s3 = next((r["score"] for r in brank if r["iso3"] == top3[2]["iso3"]), None)
+        s4 = next((r["score"] for r in brank if r["iso3"] == pool[3]), None)
+        if s3 is not None and s4 is not None and abs(s3 - s4) < 1.0:
+            alt = names.get(pool[3], pool[3])
+    for k, t in enumerate(top3):
+        t["action_plan"] = _action_plan(t["iso3"], t["track"], product_id, t["flags"], alt if k == 2 else None)
 
     # 민감도: 각 가중치를 상대적으로 ±20% 바꾼 뒤 재정규화
     base_top3 = [t["iso3"] for t in top3]
@@ -291,24 +372,50 @@ def run_analysis(product_id: str, track: str = "all", weights: dict | None = Non
             vw = dict(w)
             vw[k] = w[k] * f
             vw = _normalize_weights(vw)
-            res = run_analysis_core(product_id, track, vw, candidates, hs_list, names, gdp, presence, extra)
+            res = run_analysis_core(product_id, track, vw, candidates, hs_list, names, gdp, presence, extra, primary=primary)
             variants.append({"changed": f"{k} ×{f}", "weights": {x: round(y, 3) for x, y in vw.items()}, "top3": res})
     stable = all(set(v["top3"]) == set(base_top3) for v in variants)  # 구성 국가 기준
     order_stable = all(v["top3"] == base_top3 for v in variants)
 
+    # 소액 기저 기준 민감도: 기준을 바꿔도 TOP3가 유지되는지 (0 = 규칙 미적용)
+    small_base_tests = [{"threshold_usd": th * 1000, "top3": run_analysis_core(product_id, track, w, candidates, hs_list, names, gdp, presence, extra, th, primary)}
+                        for th in (0,) + SMALL_BASE_TESTS]
+
+    # 2023년 대체 국가 민감도: (고정) 기존 순위에서 해당 국가만 빼기 / (재산정) 후보에서 빼고 백분위·순위 다시 계산
+    fb = sorted({r["iso3"] for hs in hs_list for r in scenarios[hs]["ranking"] if r.get("market_year") == BASE_YEAR - 1})
+    year_fallback = {"countries": fb, "fixed_top3": None, "recomputed_top3": None}
+    if fb:
+        year_fallback["fixed_top3"] = [i for i in pool if i not in fb][:3]
+        year_fallback["recomputed_top3"] = run_analysis_core(product_id, track, w, [i for i in candidates if i not in fb],
+                                                             hs_list, names, gdp, presence, extra, primary=primary)
+
+    # 세 갈래 TOP3: 전체 / 신규 진출 가능성 검토(롯데 진출 공개 근거 없음) / 기존 시장 확대(공개 근거 있음)
+    tracks = {t: run_analysis_core(product_id, t, w, candidates, hs_list, names, gdp, presence, extra, primary=primary) for t in ("all", "new", "expand")}
+
     warnings = [prod["hs_note"]]
-    if len(hs_list) >= 2:
+    if len(hs_list) >= 2 and not primary:
         warnings.append("빼빼로 결과는 두 품목번호로 각각 계산한 순위의 평균이며, 두 기준 모두 상위 10위 안에 든 국가를 우선 표시한다.")
     if any("대체" in f for hs in hs_list for r in scenarios[hs]["ranking"] for f in r["flags"]):
         warnings.append(f"일부 국가는 {BASE_YEAR}년 수입 자료가 없어 {BASE_YEAR-1}년 값을 사용했다(기준연도 불일치).")
     if any("분류 관행" in f for hs in hs_list for r in scenarios[hs]["ranking"] for f in r["flags"]):
         warnings.append("일부 국가는 품목번호 간 수입 규모 차이가 비정상적으로 커서 분류 관행 차이가 의심된다(해당 국가 표시 참고).")
     warnings.append("네덜란드·벨기에·싱가포르·홍콩·아랍에미리트는 중계무역 거점이라 수입액이 실제 현지 소비보다 클 수 있다.")
+    warnings.append(f"{START_YEAR}년 금액이 {SMALL_BASE_K*1000:,.0f}달러 미만인 경우 성장률은 표시만 하고 점수에는 반영하지 않았다(소액 기저의 성장률은 불안정). 기준을 바꾼 결과는 민감도 탭 참고.")
     warnings.append("대만은 UN Comtrade에 수입을 보고하지 않아 시장 수요 지표가 없다.")
     warnings.append("롯데 진출 여부는 공개 보도 근거가 있을 때만 '확인'이며, '미확인'은 미진출을 뜻하지 않는다.")
     warnings.append("검토 항목(관세·인증·물류·수익성 등)은 자동 확인되지 않았으며 담당자 확인이 필요하다.")
 
+    composition = {}
+    if primary == "S2":
+        with open(DATA / "s2_shares.csv", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                composition[r["iso3"]] = {"year": int(r["year"]), "1704": float(r["1704"]), "1806": float(r["1806"]),
+                                          "1905": float(r["1905"]), "2105": float(r["210500"])}
+        for t in top3:
+            t["composition"] = composition.get(t["iso3"])
+
     return {
+        "composition": {k: v for k, v in composition.items() if k in candidates},
         "product": {"id": product_id, **{k: prod[k] for k in ("name", "hs_scenarios", "hs_note", "cold_chain", "review_items")}},
         "meta": {"base_year": BASE_YEAR, "growth_period": f"{START_YEAR}-{BASE_YEAR}", "sources": SOURCES,
                  "n_candidates": len(candidates), "weights": {k: round(v, 3) for k, v in w.items()}, "track": track,
@@ -316,16 +423,23 @@ def run_analysis(product_id: str, track: str = "all", weights: dict | None = Non
         "scenarios": scenarios,
         "comparison": comparison,
         "top3": top3,
-        "sensitivity": {"stable_top3": stable, "order_stable": order_stable, "base_top3": base_top3, "variants": variants},
+        "sensitivity": {"stable_top3": stable, "order_stable": order_stable, "base_top3": base_top3, "variants": variants,
+                        "small_base_rule": f"{START_YEAR}년 금액이 {SMALL_BASE_K*1000:,.0f}달러 미만이면 성장률은 표시만 하고 점수에는 미반영",
+                        "small_base_tests": small_base_tests,
+                        "year_fallback": year_fallback},
+        "tracks": tracks,
         "warnings": warnings,
+        "check_links": CHECK_LINKS,
     }
 
 
-def run_analysis_core(product_id, track, w, candidates, hs_list, names, gdp, presence, extra):
-    """민감도 분석용: 같은 후보국에서 가중치만 바꿔 TOP3 국가만 반환."""
-    scen = {hs: _scenario(hs, candidates, w, names, gdp, extra if hs == hs_list[0] else None) for hs in hs_list}
+def run_analysis_core(product_id, track, w, candidates, hs_list, names, gdp, presence, extra, small_base=SMALL_BASE_K, primary=None):
+    """민감도·트랙 비교용: 같은 후보국에서 조건만 바꿔 TOP3 국가만 반환."""
+    scen = {hs: _scenario(hs, candidates, w, names, gdp, extra if hs == hs_list[0] else None, small_base) for hs in hs_list}
 
     def cr(iso):
+        if primary:
+            return next((r["rank"] for r in scen[primary]["ranking"] if r["iso3"] == iso), None)
         rs = [next((r["rank"] for r in scen[hs]["ranking"] if r["iso3"] == iso), None) for hs in hs_list]
         return None if any(r is None for r in rs) else sum(rs) / len(rs)
 
@@ -334,7 +448,7 @@ def run_analysis_core(product_id, track, w, candidates, hs_list, names, gdp, pre
         ordered = [i for i in ordered if i in presence]
     elif track == "new":
         ordered = [i for i in ordered if i not in presence]
-    if len(hs_list) >= 2:
+    if len(hs_list) >= 2 and not primary:
         ta = {r["iso3"] for r in scen[hs_list[0]]["ranking"] if r["rank"] and r["rank"] <= 10}
         tb = {r["iso3"] for r in scen[hs_list[1]]["ranking"] if r["rank"] and r["rank"] <= 10}
         robust = ta & tb

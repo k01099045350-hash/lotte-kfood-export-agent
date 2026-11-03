@@ -1,0 +1,294 @@
+{
+ "_note": "기대값은 2026-11-02 Claude 초안 → ChatGPT 독립 검토(14번 복수 정답, 6·13번 판정 기준, 15~17번 경고 필수) 후 실험 전에 고정함. 결과를 본 뒤 수정하지 않는다. 사후 추가 시험은 regression 항목으로 구분한다.",
+ "ui_default": {
+  "product_id": "confect",
+  "track": "all",
+  "weights": {
+   "market": 45,
+   "korea": 40,
+   "gdp": 15
+  }
+ },
+ "weight_rules": {
+  "기본": "기본 비율(0.45/0.40/0.15) 그대로",
+  "korea↑": "korea가 0.40보다 크고 합계 1",
+  "market↑": "market이 0.45보다 크고 합계 1",
+  "gdp=0": "gdp가 0이고 합계 1",
+  "숫자": "각 항목 오차 0.01 이내"
+ },
+ "requests": [
+  {
+   "id": 1,
+   "type": "쉬움",
+   "q": "빼빼로 유망국가 찾아줘",
+   "expect": {
+    "product_id": [
+     "pepero"
+    ],
+    "track": "all",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 2,
+   "type": "쉬움",
+   "q": "아이스크림 수출 유망국가 TOP3 알려줘",
+   "expect": {
+    "product_id": [
+     "icecream"
+    ],
+    "track": "all",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 3,
+   "type": "쉬움",
+   "q": "제과·빙과 품목군 시장 전체로 분석해줘",
+   "expect": {
+    "product_id": [
+     "confect"
+    ],
+    "track": "all",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 4,
+   "type": "쉬움",
+   "q": "빼빼로 신규 진출 후보만 보여줘",
+   "expect": {
+    "product_id": [
+     "pepero"
+    ],
+    "track": "new",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 5,
+   "type": "쉬움",
+   "q": "아이스크림 기존 시장 확대 후보 찾아줘",
+   "expect": {
+    "product_id": [
+     "icecream"
+    ],
+    "track": "expand",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 6,
+   "type": "쉬움",
+   "q": "빼빼로, 한국 수출 실적을 더 중시해서",
+   "expect": {
+    "product_id": [
+     "pepero"
+    ],
+    "track": "all",
+    "weights": "korea↑",
+    "warning": null
+   }
+  },
+  {
+   "id": 7,
+   "type": "쉬움",
+   "q": "빙과류 신규 시장 위주로",
+   "expect": {
+    "product_id": [
+     "icecream"
+    ],
+    "track": "new",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 8,
+   "type": "쉬움",
+   "q": "빼빼로 분석, GDP는 빼고 계산해줘",
+   "expect": {
+    "product_id": [
+     "pepero"
+    ],
+    "track": "all",
+    "weights": "gdp=0",
+    "warning": null
+   }
+  },
+  {
+   "id": 9,
+   "type": "모호",
+   "q": "과자 시장 전체에서 어디가 유망해?",
+   "expect": {
+    "product_id": [
+     "confect"
+    ],
+    "track": "all",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 10,
+   "type": "모호",
+   "q": "이미 파는 나라 말고 새로 들어갈 만한 곳",
+   "expect": {
+    "product_id": [
+     "(화면값)"
+    ],
+    "track": "new",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 11,
+   "type": "모호",
+   "q": "월드콘 같은 거 어디에 팔면 좋을까",
+   "expect": {
+    "product_id": [
+     "icecream"
+    ],
+    "track": "all",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 12,
+   "type": "모호",
+   "q": "지금 잘 팔리는 나라에서 더 키우고 싶어",
+   "expect": {
+    "product_id": [
+     "(화면값)"
+    ],
+    "track": "expand",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 13,
+   "type": "모호",
+   "q": "시장 규모가 큰 나라 위주로 봐줘",
+   "expect": {
+    "product_id": [
+     "(화면값)"
+    ],
+    "track": "all",
+    "weights": "market↑",
+    "warning": null
+   }
+  },
+  {
+   "id": 14,
+   "type": "모호",
+   "q": "초콜릿 과자 수출 어디가 좋아?",
+   "expect": {
+    "product_id": [
+     "confect",
+     "pepero"
+    ],
+    "track": "all",
+    "weights": "기본",
+    "warning": null
+   }
+  },
+  {
+   "id": 15,
+   "type": "미지원",
+   "q": "빼빼로 동남아 국가만 비교해줘",
+   "expect": {
+    "product_id": [
+     "pepero"
+    ],
+    "track": "all",
+    "weights": "기본",
+    "warning": "지역"
+   }
+  },
+  {
+   "id": 16,
+   "type": "미지원",
+   "q": "유럽 쪽 아이스크림 시장 알려줘",
+   "expect": {
+    "product_id": [
+     "icecream"
+    ],
+    "track": "all",
+    "weights": "기본",
+    "warning": "지역"
+   }
+  },
+  {
+   "id": 17,
+   "type": "미지원",
+   "q": "2025년 기준으로 빼빼로 다시 계산해줘",
+   "expect": {
+    "product_id": [
+     "pepero"
+    ],
+    "track": "all",
+    "weights": "기본",
+    "warning": "연도"
+   }
+  },
+  {
+   "id": 18,
+   "type": "숫자 가중치",
+   "q": "빼빼로, 시장 60% 한국 30% GDP 10%로",
+   "expect": {
+    "product_id": [
+     "pepero"
+    ],
+    "track": "all",
+    "weights": {
+     "market": 0.6,
+     "korea": 0.3,
+     "gdp": 0.1
+    },
+    "warning": null
+   }
+  },
+  {
+   "id": 19,
+   "type": "숫자 가중치",
+   "q": "아이스크림 시장 50% 한국 50%로 계산",
+   "expect": {
+    "product_id": [
+     "icecream"
+    ],
+    "track": "all",
+    "weights": {
+     "market": 0.5,
+     "korea": 0.5,
+     "gdp": 0.0
+    },
+    "warning": null
+   }
+  },
+  {
+   "id": 20,
+   "type": "숫자 가중치",
+   "q": "품목군 분석, 시장 40 한국 40 GDP 20 퍼센트",
+   "expect": {
+    "product_id": [
+     "confect"
+    ],
+    "track": "all",
+    "weights": {
+     "market": 0.4,
+     "korea": 0.4,
+     "gdp": 0.2
+    },
+    "warning": null
+   }
+  }
+ ]
+}
